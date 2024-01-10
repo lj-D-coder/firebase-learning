@@ -5,46 +5,43 @@ admin.initializeApp();
 
 
 export const getBostonAreaWeather =
-functions.https.onRequest((request, response) =>{
-  admin.firestore().doc("/areas/greater-boston").get()
-    .then((areaSnapshot) =>{
-      const cities =areaSnapshot.data()!.cities;
-      const promises = [];
-      for (const city in cities) {
-        const p = admin.firestore().doc(`cities-weather/${city}`).get();
-        promises.push(p);
+functions.https.onRequest(async(request, response) =>{
+  try {
+    const areaSnapshot = await admin.firestore().doc("/areas/greater-boston").get();
+    const cities =areaSnapshot.data()!.cities;
+    const promises = [];
+    for (const city in cities) {
+      const p = admin.firestore().doc(`cities-weather/${city}`).get();
+      promises.push(p); 
       }
-      return Promise.all(promises);
-    })
-    .then((citySnapshots) => {
-      const results: Record<string, unknown>[] = [];
+      const snapshot = await Promise.all(promises);
+      const results: { [key: string]: any; }[] = [];
 
-      citySnapshots.forEach((citySnap) => {
-        const data = citySnap.data();
+      snapshot.forEach((snap) => {
+        const data = snap.data();
         if (data) {
-          data.city = citySnap.id;
+          data.city = snap.id;
           results.push(data);
         }
       });
-
       response.send(results);
-    })
-    .catch((error) => {
-    // Handle errors here
-      console.error(error);
+    }
+
+   catch (error) {
+    console.error(error);
       response.status(500).send("Internal Server Error");
-    });
+  }
 });
 
 
-export const getBostonWeather = functions.https.onRequest((request, response)=>{
-  admin.firestore().doc("cities-weather/boston-ma-us").get()
-    .then((snapshot) => {
-      const data = snapshot.data();
-      response.send(data);
-    })
-    .catch((error)=>{
-      console.log(error);
+
+export const getBostonWeather = functions.https.onRequest(async (request, response)=>{
+  try {
+    const snapshot = await admin.firestore().doc("cities-weather/boston-ma-us").get();
+    const data =snapshot.data();
+    response.send(data);
+  } catch (error) {
+    console.log(error);
       response.status(500).send(error);
-    });
+  }
 });
